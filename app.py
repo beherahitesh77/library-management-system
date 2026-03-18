@@ -4,16 +4,16 @@ import os
 
 app = Flask(__name__)
 
-# -------- Database Setup --------
-import sqlite3
-import os
+# ---------- DATABASE PATH ----------
+# For now (safe on Render without disk)
+DB_PATH = 'database.db'
 
-DB_PATH = '/data/database.db'
-
+# ---------- INIT DATABASE ----------
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
+    # Create table
     c.execute('''
         CREATE TABLE IF NOT EXISTS books (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,7 +23,7 @@ def init_db():
         )
     ''')
 
-    # Check if table is empty
+    # Insert default books if empty
     c.execute("SELECT COUNT(*) FROM books")
     count = c.fetchone()[0]
 
@@ -84,24 +84,29 @@ def init_db():
         ]
 
         for book in books:
-            c.execute("INSERT INTO books (title, author, status) VALUES (?, ?, ?)",
-                      (book[0], book[1], "Available"))
+            c.execute(
+                "INSERT INTO books (title, author, status) VALUES (?, ?, ?)",
+                (book[0], book[1], "Available")
+            )
 
     conn.commit()
     conn.close()
+
+
+# Call once at startup
 init_db()
 
-# -------- HOME + SEARCH --------
+# ---------- HOME + SEARCH ----------
 @app.route('/', methods=['GET', 'POST'])
 def index():
     search = request.form.get('search')
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     if search:
-        c.execute("SELECT * FROM books WHERE LOWER(title) LIKE LOWER(?)", 
-          ('%' + search + '%',))
+        c.execute("SELECT * FROM books WHERE LOWER(title) LIKE LOWER(?)",
+                  ('%' + search + '%',))
     else:
         c.execute("SELECT * FROM books")
 
@@ -111,14 +116,14 @@ def index():
     return render_template('index.html', books=books)
 
 
-# -------- ADD --------
+# ---------- ADD ----------
 @app.route('/add', methods=['GET', 'POST'])
 def add_book():
     if request.method == 'POST':
         title = request.form['title']
         author = request.form['author']
 
-        conn = sqlite3.connect('database.db')
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute("INSERT INTO books (title, author, status) VALUES (?, ?, ?)",
                   (title, author, "Available"))
@@ -130,10 +135,10 @@ def add_book():
     return render_template('add_book.html')
 
 
-# -------- DELETE --------
+# ---------- DELETE ----------
 @app.route('/delete/<int:id>')
 def delete_book(id):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM books WHERE id=?", (id,))
     conn.commit()
@@ -141,10 +146,10 @@ def delete_book(id):
     return redirect('/')
 
 
-# -------- EDIT --------
+# ---------- EDIT ----------
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit_book(id):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     if request.method == 'POST':
@@ -164,10 +169,10 @@ def edit_book(id):
     return render_template('edit_book.html', book=book)
 
 
-# -------- ISSUE --------
+# ---------- ISSUE ----------
 @app.route('/issue/<int:id>')
 def issue_book(id):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("UPDATE books SET status='Issued' WHERE id=?", (id,))
     conn.commit()
@@ -175,38 +180,24 @@ def issue_book(id):
     return redirect('/')
 
 
-# -------- RETURN --------
+# ---------- RETURN ----------
 @app.route('/return/<int:id>')
-def return_book_direct(id):
-    try:
-        conn = sqlite3.connect('/data/database.db')
-        c = conn.cursor()
-
-        c.execute("SELECT status FROM books WHERE id=?", (id,))
-        result = c.fetchone()
-
-        if result and result[0] == "Issued":
-            c.execute("UPDATE books SET status='Available' WHERE id=?", (id,))
-            conn.commit()
-
-        conn.close()
-        return redirect('/')
-
-    except Exception as e:
-        return f"Error: {e}"
-    
-import sqlite3
-
-def init_db():
-    conn = sqlite3.connect('/data/database.db')
+def return_book(id):
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS books (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            author TEXT,
-            status TEXT
-        )
-    ''')
-    conn.commit()
+
+    c.execute("SELECT status FROM books WHERE id=?", (id,))
+    result = c.fetchone()
+
+    if result and result[0] == "Issued":
+        c.execute("UPDATE books SET status='Available' WHERE id=?", (id,))
+        conn.commit()
+
     conn.close()
+    return redirect('/')
+
+
+# ---------- RUN ----------
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
