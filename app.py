@@ -106,33 +106,22 @@ def issue_book(id):
 
 
 # -------- RETURN --------
-@app.route('/return', methods=['GET', 'POST'])
-def return_book():
-    message = ""
+@app.route('/return/<int:id>')
+def return_book_direct(id):
+    conn = sqlite3.connect('/data/database.db')
+    c = conn.cursor()
 
-    if request.method == 'POST':
-        book_id = request.form['book_id']
+    # Check current status
+    c.execute("SELECT status FROM books WHERE id=?", (id,))
+    result = c.fetchone()
 
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
+    if result:
+        if result[0] == "Issued":
+            c.execute("UPDATE books SET status='Available' WHERE id=?", (id,))
+            conn.commit()
 
-        # Check if book exists
-        c.execute("SELECT status FROM books WHERE id=?", (book_id,))
-        result = c.fetchone()
-
-        if result:
-            if result[0] == "Available":
-                message = "⚠️ Book is already available"
-            else:
-                c.execute("UPDATE books SET status='Available' WHERE id=?", (book_id,))
-                conn.commit()
-                message = "✅ Book returned successfully"
-        else:
-            message = "❌ Book not found"
-
-        conn.close()
-
-    return render_template('return.html', message=message)
+    conn.close()
+    return redirect('/')
     
 import sqlite3
 
