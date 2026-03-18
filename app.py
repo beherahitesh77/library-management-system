@@ -133,3 +133,19 @@ def return_book():
         conn.close()
 
     return render_template('return.html', message=message)
+    
+import sqlite3
+
+def init_db():
+    conn = sqlite3.connect('/data/database.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS books (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            author TEXT,
+            status TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
