@@ -5,9 +5,15 @@ import os
 app = Flask(__name__)
 
 # -------- Database Setup --------
+import sqlite3
+import os
+
+DB_PATH = '/data/database.db'
+
 def init_db():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS books (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,9 +22,73 @@ def init_db():
             status TEXT
         )
     ''')
+
+    # Check if table is empty
+    c.execute("SELECT COUNT(*) FROM books")
+    count = c.fetchone()[0]
+
+    if count == 0:
+        books = [
+            ("The Alchemist", "Paulo Coelho"),
+            ("Atomic Habits", "James Clear"),
+            ("Rich Dad Poor Dad", "Robert Kiyosaki"),
+            ("Think and Grow Rich", "Napoleon Hill"),
+            ("Ikigai", "Hector Garcia"),
+            ("The Power of Now", "Eckhart Tolle"),
+            ("Deep Work", "Cal Newport"),
+            ("Zero to One", "Peter Thiel"),
+            ("Start with Why", "Simon Sinek"),
+            ("The 7 Habits", "Stephen Covey"),
+
+            ("Harry Potter 1", "J.K. Rowling"),
+            ("Harry Potter 2", "J.K. Rowling"),
+            ("Harry Potter 3", "J.K. Rowling"),
+            ("Harry Potter 4", "J.K. Rowling"),
+            ("Harry Potter 5", "J.K. Rowling"),
+
+            ("C Programming", "Dennis Ritchie"),
+            ("Data Structures", "Mark Allen Weiss"),
+            ("Operating System", "Galvin"),
+            ("Computer Networks", "Andrew Tanenbaum"),
+            ("DBMS", "Korth"),
+
+            ("Python Crash Course", "Eric Matthes"),
+            ("Clean Code", "Robert Martin"),
+            ("Code Complete", "Steve McConnell"),
+            ("Design Patterns", "Erich Gamma"),
+            ("Refactoring", "Martin Fowler"),
+
+            ("The Hobbit", "J.R.R. Tolkien"),
+            ("Lord of the Rings", "J.R.R. Tolkien"),
+            ("Game of Thrones", "George R.R. Martin"),
+            ("Dune", "Frank Herbert"),
+            ("The Witcher", "Andrzej Sapkowski"),
+
+            ("Wings of Fire", "A.P.J Abdul Kalam"),
+            ("Ignited Minds", "A.P.J Abdul Kalam"),
+            ("My Experiments with Truth", "Mahatma Gandhi"),
+            ("Discovery of India", "Jawaharlal Nehru"),
+            ("India After Gandhi", "Ramachandra Guha"),
+
+            ("Sapiens", "Yuval Noah Harari"),
+            ("Homo Deus", "Yuval Noah Harari"),
+            ("21 Lessons", "Yuval Noah Harari"),
+            ("Thinking Fast and Slow", "Daniel Kahneman"),
+            ("Outliers", "Malcolm Gladwell"),
+
+            ("The Lean Startup", "Eric Ries"),
+            ("Hooked", "Nir Eyal"),
+            ("Rework", "Jason Fried"),
+            ("Good to Great", "Jim Collins"),
+            ("Blue Ocean Strategy", "Kim & Mauborgne")
+        ]
+
+        for book in books:
+            c.execute("INSERT INTO books (title, author, status) VALUES (?, ?, ?)",
+                      (book[0], book[1], "Available"))
+
     conn.commit()
     conn.close()
-
 init_db()
 
 # -------- HOME + SEARCH --------
