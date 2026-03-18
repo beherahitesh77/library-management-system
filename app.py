@@ -108,20 +108,22 @@ def issue_book(id):
 # -------- RETURN --------
 @app.route('/return/<int:id>')
 def return_book_direct(id):
-    conn = sqlite3.connect('/data/database.db')
-    c = conn.cursor()
+    try:
+        conn = sqlite3.connect('/data/database.db')
+        c = conn.cursor()
 
-    # Check current status
-    c.execute("SELECT status FROM books WHERE id=?", (id,))
-    result = c.fetchone()
+        c.execute("SELECT status FROM books WHERE id=?", (id,))
+        result = c.fetchone()
 
-    if result:
-        if result[0] == "Issued":
+        if result and result[0] == "Issued":
             c.execute("UPDATE books SET status='Available' WHERE id=?", (id,))
             conn.commit()
 
-    conn.close()
-    return redirect('/')
+        conn.close()
+        return redirect('/')
+
+    except Exception as e:
+        return f"Error: {e}"
     
 import sqlite3
 
