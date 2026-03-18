@@ -106,16 +106,33 @@ def issue_book(id):
 
 
 # -------- RETURN --------
-@app.route('/return/<int:id>')
-def return_book(id):
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute("UPDATE books SET status='Available' WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
-    return redirect('/')
+@app.route('/return', methods=['GET', 'POST'])
+def return_book():
+    message = ""
 
+    if request.method == 'POST':
+        book_id = request.form['book_id']
 
+        conn = sqlite3.connect('database.db')
+        c = conn.cursor()
+
+        # Check if book exists
+        c.execute("SELECT status FROM books WHERE id=?", (book_id,))
+        result = c.fetchone()
+
+        if result:
+            if result[0] == "Available":
+                message = "⚠️ Book is already available"
+            else:
+                c.execute("UPDATE books SET status='Available' WHERE id=?", (book_id,))
+                conn.commit()
+                message = "✅ Book returned successfully"
+        else:
+            message = "❌ Book not found"
+
+        conn.close()
+
+    return render_template('return.html', message=message)
 # -------- RUN -------
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
